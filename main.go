@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"fmt"
+	"time"
 
 	"github.com/nats-io/nats.go"
 )
@@ -14,7 +15,9 @@ func main() {
 	admin := getJs("./admin.seed")
 	publisher := getJs("./publisher.seed")
 	subscriber := getJs("./subscriber.seed")
+
 	err := admin.DeleteStream(streamName)
+
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -41,17 +44,27 @@ func main() {
 		panic(err)
 	}
 	noOfMsgsToSend := 100
+
+	//subscribe
 	sub, err := subscriber.PullSubscribe("demostream.>", consumerName, nats.BindStream(streamName))
 	if err != nil {
 		panic(err)
 	}
 	msgsRcd := 0
-	//subscribe
 	go func() {
 		for {
-			fmt.Printf("getting msg %d\n", msgsRcd)
-			_, err = sub.Fetch(1)
-			fmt.Printf("subd %d\n", msgsRcd)
+			fmt.Printf("trying to get msg %d\n", msgsRcd)
+			msgs, err := sub.Fetch(1)
+			if err != nil {
+				fmt.Println(err)
+				fmt.Println("no message still waiting")
+				time.Sleep(time.Second)
+				continue
+			}
+			for _, msg := range msgs {
+				fmt.Printf("got msg %d\n", msgsRcd)
+				msg.Ack()
+			}
 			if err != nil {
 				fmt.Println(msgsRcd)
 				panic(err)
@@ -67,7 +80,8 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Printf("pubd %d to stream %s\n", i, ack.Stream)
+		fmt.Printf("pubd msg %d on stream %s\n", i, ack.Stream)
+		time.Sleep(time.Second * 3)
 	}
 	if noOfMsgsToSend != msgsRcd {
 		panic(fmt.Sprintf("no of msg rcd %d", msgsRcd))
