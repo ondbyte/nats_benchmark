@@ -46,6 +46,7 @@ func main() {
 		panic(err)
 	}
 	msgsRcd := 0
+	//subscribe
 	go func() {
 		for {
 			fmt.Printf("getting msg %d\n", msgsRcd)
@@ -58,6 +59,7 @@ func main() {
 			msgsRcd++
 		}
 	}()
+	//publish
 	for i := 0; i < noOfMsgsToSend; i++ {
 		ack, err := publisher.Publish(fmt.Sprintf("demostream.%d", i), data)
 		if err != nil {
